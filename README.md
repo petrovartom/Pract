@@ -93,90 +93,73 @@ origin https://github.com/<your github account>/python-project-template.git  (fe
 origin https://github.com/<your github account>/python-project-template.git (push)
 ```
 
-### Create virtual environment
+## uv
 
-#### Create a new virtual environment
+This project uses [uv](https://docs.astral.sh/uv/) to manage the virtual
+environment, dependencies, tests, linting and packaging.
+
+### Install uv
 
 **Unix/macOS**
 ```shell
-python -m venv .venv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 **Windows**
 ```shell
-py -m venv .venv
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-#### Activate a virtual environment
+See the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+for other options (Homebrew, pipx, winget, ...).
 
-**Unix/macOS**
+### Create the virtual environment and install dependencies
 ```shell
-source .venv/bin/activate
+uv sync
 ```
+This creates `.venv/`, installs Python 3.13 (see `.python-version`) if it is
+not available, installs the project in editable mode together with the development
+dependencies from the `[dependency-groups]` table, and keeps everything in sync
+with `uv.lock`.
 
-**Windows**
-```shell
-.venv\Scripts\activate
-```
-
-* [venv — Creation of virtual environments](https://docs.python.org/3/library/venv.html)
-* [Install packages in a virtual environment using pip and venv](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/)
-
-### Pip installation
-
-#### Installation
-
-**Unix/macOS**
-```shell
-python -m ensurepip --upgrade
-```
-
-**Windows**
-```shell
-py -m ensurepip --upgrade
-```
-
-#### Upgrading
-
-**Unix/macOS**
-```shell
-python3 -m pip install --upgrade pip
-```
-
-**Windows**
-```shell
-py -m pip install --upgrade pip
-```
-
-* [Pip Installation](https://pip.pypa.io/en/stable/installation/)
-
-### check-manifest
-
-```shell
-pip install check-manifest
-
-check-manifest -u -v
-```
-
-* [check-manifest](https://pypi.org/project/check-manifest/)
-
-## Nox
-
-### Install Nox
-```shell
-python3 -m pip install --upgrade nox
-```
+There is no need to activate the virtual environment: prefix commands with
+`uv run` and they execute inside it.
 
 ### Run tests
 ```shell
-python3 -m nox -s tests-3.11
+uv run pytest
 ```
 
-### Run lint
+### Check code style
+The style of the Python code is checked with [ruff](https://docs.astral.sh/ruff/).
 
-In case of failed execution check if `.venv,.idea,.github` etc. added to `noxfile.py` lint section
+Lint (pycodestyle, pyflakes and import ordering rules):
+```shell
+uv run ruff check .
+```
 
-* [Nox](https://nox.thea.codes/en/stable/)
+Check formatting:
+```shell
+uv run ruff format --check .
+```
+
+Fix what can be fixed automatically:
+```shell
+uv run ruff check --fix .
+uv run ruff format .
+```
+
+### Build and check the package
+```shell
+uv run check-manifest
+uv build
+uv run twine check dist/*
+```
+
+* [uv](https://docs.astral.sh/uv/)
+* [ruff](https://docs.astral.sh/ruff/)
+* [pytest](https://docs.pytest.org/)
+* [check-manifest](https://pypi.org/project/check-manifest/)
 
 
 ### Description
