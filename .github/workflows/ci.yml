@@ -1,6 +1,12 @@
 name: My First CI Build
 
-on: [push]
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - "feature/**"
 
 jobs:
 
