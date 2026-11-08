@@ -12,6 +12,11 @@ on:
     branches:
       - "feature/**"
 
+# Мінімальні права для GITHUB_TOKEN: жодна задача нічого не пише в репозиторій,
+# їй потрібно лише прочитати код (actions/checkout).
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint (ruff check)
@@ -60,3 +65,64 @@ jobs:
 
       - name: Run pytest
         run: uv run pytest
+
+  notify:
+    name: Notify (Telegram)
+    runs-on: ubuntu-latest
+    # Чекаємо на всі перевірки...
+    needs: [lint, format, test]
+    # ...але запускаємось незалежно від їхнього результату: always() вимикає
+    # стандартну умову success(), тож про падіння CI ми теж дізнаємось.
+    if: ${{ always() }}
+    timeout-minutes: 5
+    steps:
+      - name: Send Telegram message
+        # Усі значення передаються через env, а не підставляються у скрипт
+        # через ${{ }}: назву гілки й логін автора контролює не лише власник
+        # репозиторію, тож пряма підстановка дозволила б ін'єкцію команд.
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          ACTOR: ${{ github.triggering_actor }}
+          EVENT: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+          LINT: ${{ needs.lint.result }}
+          FORMAT: ${{ needs.format.result }}
+          TEST: ${{ needs.test.result }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::error::TELEGRAM_BOT_TOKEN або TELEGRAM_CHAT_ID не задано"
+            exit 1
+          fi
+
+          case " $RESULTS " in
+            *" failure "*)   STATUS="❌ Перевірки не пройшли" ;;
+            *" cancelled "*) STATUS="⚪ Запуск скасовано" ;;
+            *)               STATUS="✅ Перевірки пройшли" ;;
+          esac
+
+          TEXT="$STATUS
+          Репозиторій: $REPO
+          Гілка: $BRANCH
+          Подія: $EVENT
+          Запустив: $ACTOR
+          lint: $LINT | format: $FORMAT | test: $TEST
+          $RUN_URL"
+
+          # Токен передається curl через конфіг на stdin, а не аргументом
+          # командного рядка, щоб він не потрапив у список процесів.
+          # Тіло відповіді не друкуємо повністю: виводимо лише ok/description.
+          RESPONSE=$(printf 'url = "https://api.telegram.org/bot%s/sendMessage"\n' "$TELEGRAM_BOT_TOKEN" \
+            | curl -sS --config - \
+                --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+                --data-urlencode "text=$TEXT" \
+                --data-urlencode "disable_web_page_preview=true")
+          OK=$(printf '%s' "$RESPONSE" | jq -r '.ok')
+          if [ "$OK" != "true" ]; then
+            echo "::error::Telegram API: $(printf '%s' "$RESPONSE" | jq -r '.description')"
+            exit 1
+          fi
+          echo "Повідомлення надіслано"
