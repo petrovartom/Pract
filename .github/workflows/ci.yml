@@ -24,6 +24,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Не залишати GITHUB_TOKEN у .git/config після checkout:
+          # наступним крокам (uv, ruff, pytest) він не потрібен.
+          persist-credentials: false
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.3.3
@@ -40,6 +44,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Не залишати GITHUB_TOKEN у .git/config після checkout:
+          # наступним крокам (uv, ruff, pytest) він не потрібен.
+          persist-credentials: false
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.3.3
@@ -56,6 +64,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Не залишати GITHUB_TOKEN у .git/config після checkout:
+          # наступним крокам (uv, ruff, pytest) він не потрібен.
+          persist-credentials: false
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.3.3
@@ -75,6 +87,9 @@ jobs:
     # стандартну умову success(), тож про падіння CI ми теж дізнаємось.
     if: ${{ always() }}
     timeout-minutes: 5
+    # Цій задачі GITHUB_TOKEN не потрібен зовсім: вона не робить checkout
+    # і не звертається до GitHub API.
+    permissions: {}
     steps:
       - name: Send Telegram message
         # Усі значення передаються через env, а не підставляються у скрипт
