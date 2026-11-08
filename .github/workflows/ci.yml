@@ -1,39 +1,62 @@
-name: My First CI Build
+name: CI
 
 on:
+  # Pull requests into main: runs when a PR is opened and on every new commit.
+  # The branches filter refers to the target (base) branch of the PR.
   pull_request:
     branches:
       - main
+  # Direct pushes: only branches starting with feature/.
+  # "**" also matches slashes, so feature/issue-42/fix-typo is included.
   push:
     branches:
       - "feature/**"
 
 jobs:
-
-  build:
-    name: Lint and test (${{ matrix.platform }})
-
-    strategy:
-      matrix:
-        platform: [ubuntu-latest]
-
-    runs-on: ${{ matrix.platform }}
-
+  lint:
+    name: Lint (ruff check)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.3.2
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: Install dependencies
         run: uv sync --locked
 
-      - name: Lint (ruff check)
+      - name: Run ruff check
         run: uv run ruff check .
 
-      - name: Format check (ruff format)
+  format:
+    name: Format (ruff format --check)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run ruff format check
         run: uv run ruff format --check .
 
-      - name: Execute tests
+  test:
+    name: Test (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run pytest
         run: uv run pytest
