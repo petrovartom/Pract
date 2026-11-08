@@ -87,6 +87,9 @@ jobs:
     # стандартну умову success(), тож про падіння CI ми теж дізнаємось.
     if: ${{ always() }}
     timeout-minutes: 5
+    # Токен бота зберігається лише в оточенні notifications, яке дозволене
+    # тільки для гілки main.
+    environment: notifications
     # Цій задачі GITHUB_TOKEN не потрібен зовсім: вона не робить checkout
     # і не звертається до GitHub API.
     permissions: {}
